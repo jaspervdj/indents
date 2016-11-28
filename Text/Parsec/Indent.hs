@@ -18,7 +18,6 @@ import Text.Parsec hiding (State)
 import Text.Parsec.Pos
 import Text.Parsec.Token
 import Control.Monad.State
-import Control.Concatenative
 
 -- $doc
 -- A module to construct indentation aware parsers. Many programming
@@ -69,7 +68,7 @@ indented :: (Stream s (State SourcePos) z) => IndentParser s u ()
 indented = do
     pos <- getPosition
     s <- get
-    if biAp sourceColumn (<=) pos s then parserFail "not indented" else do
+    if sourceColumn pos <= sourceColumn s then parserFail "not indented" else do
         put $ setSourceLine s (sourceLine pos)
         return ()
 
@@ -82,7 +81,7 @@ same :: (Stream s (State SourcePos) z) => IndentParser s u ()
 same = do
     pos <- getPosition
     s <- get
-    if biAp sourceLine (==) pos s then return () else parserFail "over one line"
+    if sourceLine pos == sourceLine s then return () else parserFail "over one line"
     
 -- | Parses a block of lines at the same indentation level
 block :: (Stream s (State SourcePos) z) => IndentParser s u a -> IndentParser s u [a]
@@ -103,7 +102,7 @@ checkIndent :: (Stream s (State SourcePos) z) => IndentParser s u ()
 checkIndent = do
     s <- get
     p <- getPosition
-    if biAp sourceColumn (==) p s then return () else parserFail "indentation doesn't match"
+    if sourceColumn p == sourceColumn s then return () else parserFail "indentation doesn't match"
 
 -- | Run the result of an indentation sensitive parse
 runIndent :: SourceName -> State SourcePos a -> a
