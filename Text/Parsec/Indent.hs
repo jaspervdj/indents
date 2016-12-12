@@ -4,7 +4,7 @@ module Text.Parsec.Indent (
     -- $doc
 
     -- * Types
-    IndentT, IndentParser, runIndent,
+    IndentT, IndentParserT, IndentParser, runIndent,
     -- * Blocks
     withBlock, withBlock', block,
     -- * Indentation Checking
@@ -16,8 +16,9 @@ module Text.Parsec.Indent (
     (<+/>), (<-/>), (<*/>), (<?/>), Optional(..)
     ) where
 
+import           Control.Monad.Identity (Identity)
 import           Control.Monad.State
-import           Text.Parsec         hiding (State)
+import           Text.Parsec            hiding (State)
 import           Text.Parsec.Pos
 import           Text.Parsec.Token
 
@@ -49,9 +50,12 @@ import           Text.Parsec.Token
 -- | Indentation transformer.
 type IndentT m = StateT SourcePos m
 
--- | Indentation sensitive parser type. Usually @ m @ will
---   be @ Identity @ as with any @ ParsecT @
-type IndentParser s u m a = ParsecT s u (IndentT m) a
+
+-- | Indentation sensitive parser type. Usually @m@ will be 'Identity' as with
+-- any 'ParsecT'.  In that case you can use the simpler 'IndentParser' type.
+type IndentParserT s u m a = ParsecT s u (IndentT m) a
+
+type IndentParser s u a = IndentParserT s u Identity a
 
 -- | @ 'withBlock' f a p @ parses @ a @
 --   followed by an indented block of @ p @
@@ -59,9 +63,9 @@ type IndentParser s u m a = ParsecT s u (IndentT m) a
 withBlock
     :: (Monad m, Stream s (IndentT m) z)
     => (a -> [b] -> c)
-    -> IndentParser s u m a
-    -> IndentParser s u m b
-    -> IndentParser s u m c
+    -> IndentParserT s u m a
+    -> IndentParserT s u m b
+    -> IndentParserT s u m c
 withBlock f a p = withPos $ do
     r1 <- a
     r2 <- option [] (indented >> block p)
@@ -70,15 +74,15 @@ withBlock f a p = withPos $ do
 -- | Like 'withBlock', but throws away initial parse result
 withBlock'
     :: (Monad m, Stream s (IndentT m) z)
-    => IndentParser s u m a
-    -> IndentParser s u m b
-    -> IndentParser s u m [b]
+    => IndentParserT s u m a
+    -> IndentParserT s u m b
+    -> IndentParserT s u m [b]
 withBlock' = withBlock (flip const)
 
 -- | Parses only when indented past the level of the reference
 indented
     :: (Monad m, Stream s (IndentT m) z)
-    => IndentParser s u m ()
+    => IndentParserT s u m ()
 indented = do
     pos <- getPosition
     s <- get
@@ -89,13 +93,13 @@ indented = do
 -- | Parses only when indented past the level of the reference or on the same line
 sameOrIndented
     :: (Monad m, Stream s (IndentT m) z)
-    => IndentParser s u m ()
+    => IndentParserT s u m ()
 sameOrIndented = same <|> indented
 
 -- | Parses only on the same line as the reference
 same
     :: (Monad m, Stream s (IndentT m) z)
-    => IndentParser s u m ()
+    => IndentParserT s u m ()
 same = do
     pos <- getPosition
     s <- get
@@ -104,8 +108,8 @@ same = do
 -- | Parses a block of lines at the same indentation level
 block
     :: (Monad m, Stream s (IndentT m) z)
-    => IndentParser s u m a
-    -> IndentParser s u m [a]
+    => IndentParserT s u m a
+    -> IndentParserT s u m [a]
 block p = withPos $ do
     r <- many1 (checkIndent >> p)
     return r
@@ -113,8 +117,8 @@ block p = withPos $ do
 -- | Parses using the current location for indentation reference
 withPos
     :: (Monad m, Stream s (IndentT m) z)
-    => IndentParser s u m a
-    -> IndentParser s u m a
+    => IndentParserT s u m a
+    -> IndentParserT s u m a
 withPos x = do
     a <- get
     p <- getPosition
@@ -124,7 +128,7 @@ withPos x = do
 -- | Ensures the current indentation level matches that of the reference
 checkIndent
     :: (Monad m, Stream s (IndentT m) z)
-    => IndentParser s u m ()
+    => IndentParserT s u m ()
 checkIndent = do
     s <- get
     p <- getPosition
@@ -137,66 +141,66 @@ runIndent s = flip evalState (initialPos s)
 -- | '<+/>' is to indentation sensitive parsers what 'ap' is to monads
 (<+/>)
     :: (Monad m, Stream s (IndentT m) z)
-    => IndentParser s u m (a -> b)
-    -> IndentParser s u m a
-    -> IndentParser s u m b
+    => IndentParserT s u m (a -> b)
+    -> IndentParserT s u m a
+    -> IndentParserT s u m b
 a <+/> b = ap a (sameOrIndented >> b)
 
 -- | '<-/>' is like '<+/>', but doesn't apply the function to the parsed value
 (<-/>)
     :: (Monad m, Stream s (IndentT m) z)
-    => IndentParser s u m a
-    -> IndentParser s u m b
-    -> IndentParser s u m a
+    => IndentParserT s u m a
+    -> IndentParserT s u m b
+    -> IndentParserT s u m a
 a <-/> b = liftM2 const a (sameOrIndented >> b)
 
 -- | Like '<+/>' but applies the second parser many times
 (<*/>)
     :: (Monad m, Stream s (IndentT m) z)
-    => IndentParser s u m ([a] -> b)
-    -> IndentParser s u m a
-    -> IndentParser s u m b
+    => IndentParserT s u m ([a] -> b)
+    -> IndentParserT s u m a
+    -> IndentParserT s u m b
 a <*/> b = ap a (many (sameOrIndented >> b))
 
 -- | Datatype used to optional parsing
-data Optional s u m a = Opt a (IndentParser s u m a)
+data Optional s u m a = Opt a (IndentParserT s u m a)
 
 -- | Like '<+/>' but applies the second parser optionally using the 'Optional' datatype
 (<?/>)
     :: (Monad m, Stream s (IndentT m) z)
-    => IndentParser s u m (a -> b)
+    => IndentParserT s u m (a -> b)
     -> (Optional s u m a)
-    -> IndentParser s u m b
+    -> IndentParserT s u m b
 (<?/>) a (Opt b c) = ap a (option b (sameOrIndented >> c))
 
 -- | parses with surrounding brackets
 indentBrackets
     :: (Monad m, Stream s (IndentT m) z)
     => GenTokenParser s u (IndentT m)
-    -> IndentParser s u m a
-    -> IndentParser s u m a
+    -> IndentParserT s u m a
+    -> IndentParserT s u m a
 indentBrackets lexer p = withPos $ return id <-/> symbol lexer "[" <+/> p <-/> symbol lexer "]"
 
 -- | parses with surrounding angle brackets
 indentAngles
     :: (Monad m, Stream s (IndentT m) z)
     => GenTokenParser s u (IndentT m)
-    -> IndentParser s u m a
-    -> IndentParser s u m a
+    -> IndentParserT s u m a
+    -> IndentParserT s u m a
 indentAngles lexer p = withPos $ return id <-/> symbol lexer "<" <+/> p <-/> symbol lexer ">"
 
 -- | parses with surrounding braces
 indentBraces
     :: (Monad m, Stream s (IndentT m) z)
     => GenTokenParser s u (IndentT m)
-    -> IndentParser s u m a
-    -> IndentParser s u m a
+    -> IndentParserT s u m a
+    -> IndentParserT s u m a
 indentBraces lexer p = withPos $ return id <-/> symbol lexer "{" <+/> p <-/> symbol lexer "}"
 
 -- | parses with surrounding parentheses
 indentParens
     :: (Monad m, Stream s (IndentT m) z)
     => GenTokenParser s u (IndentT m)
-    -> IndentParser s u m a
-    -> IndentParser s u m a
+    -> IndentParserT s u m a
+    -> IndentParserT s u m a
 indentParens lexer p = withPos $ return id <-/> symbol lexer "(" <+/> p <-/> symbol lexer ")"
