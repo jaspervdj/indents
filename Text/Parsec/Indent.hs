@@ -16,10 +16,10 @@ module Text.Parsec.Indent (
     (<+/>), (<-/>), (<*/>), (<?/>), Optional(..)
     ) where
 
-import           Control.Monad.Identity (Identity)
-import           Control.Monad.State
-import           Text.Parsec            hiding (State)
-import           Text.Parsec.Pos
+import           Control.Monad          (ap, liftM2, when)
+import           Control.Monad.Identity (Identity, runIdentity)
+import           Control.Monad.State    (StateT, evalStateT, get, put)
+import           Text.Parsec
 import           Text.Parsec.Token
 
 -- $doc
@@ -47,14 +47,28 @@ import           Text.Parsec.Token
 -- is MIME headers. Line folding based binding separation is used in
 -- Haskell as well.
 
--- | Indentation transformer.
-type IndentT m = StateT SourcePos m
+-- | We use our own 'Position' type that doesn't require a 'SourceName'.
+data Pos = Pos
+    { pLine   :: !Int
+    , pColumn :: !Int
+    }
 
+getCurrentPos :: Monad m => IndentParserT s u m Pos
+getCurrentPos = do
+    pos <- getPosition
+    return $! Pos {pLine = sourceLine pos, pColumn = sourceColumn pos}
+
+getReferencePos :: Monad m => IndentParserT s u m Pos
+getReferencePos = get
+
+-- | Indentation transformer.
+type IndentT m = StateT Pos m
 
 -- | Indentation sensitive parser type. Usually @m@ will be 'Identity' as with
 -- any 'ParsecT'.  In that case you can use the simpler 'IndentParser' type.
 type IndentParserT s u m a = ParsecT s u (IndentT m) a
 
+-- | A simplified 'IndentParserT'.
 type IndentParser s u a = IndentParserT s u Identity a
 
 -- | @ 'withBlock' f a p @ parses @ a @
@@ -84,11 +98,9 @@ indented
     :: (Monad m, Stream s (IndentT m) z)
     => IndentParserT s u m ()
 indented = do
-    pos <- getPosition
-    s <- get
-    if sourceColumn pos <= sourceColumn s then parserFail "not indented" else do
-        put $ setSourceLine s (sourceLine pos)
-        return ()
+    pos <- getCurrentPos
+    ref <- getReferencePos
+    when (pColumn pos <= pColumn ref) (parserFail "not indented")
 
 -- | Parses only when indented past the level of the reference or on the same line
 sameOrIndented
@@ -101,9 +113,9 @@ same
     :: (Monad m, Stream s (IndentT m) z)
     => IndentParserT s u m ()
 same = do
-    pos <- getPosition
-    s <- get
-    if sourceLine pos == sourceLine s then return () else parserFail "over one line"
+    pos <- getCurrentPos
+    s <- getReferencePos
+    if pLine pos == pLine s then return () else parserFail "over one line"
 
 -- | Parses a block of lines at the same indentation level
 block
@@ -120,8 +132,8 @@ withPos
     => IndentParserT s u m a
     -> IndentParserT s u m a
 withPos x = do
-    a <- get
-    p <- getPosition
+    a <- getReferencePos
+    p <- getCurrentPos
     r <- put p >> x
     put a >> return r
 
@@ -130,13 +142,17 @@ checkIndent
     :: (Monad m, Stream s (IndentT m) z)
     => IndentParserT s u m ()
 checkIndent = do
-    s <- get
-    p <- getPosition
-    if sourceColumn p == sourceColumn s then return () else parserFail "indentation doesn't match"
+    s <- getReferencePos
+    p <- getCurrentPos
+    if pColumn p == pColumn s then return () else parserFail "indentation doesn't match"
 
 -- | Run the result of an indentation sensitive parse
-runIndent :: SourceName -> State SourcePos a -> a
-runIndent s = flip evalState (initialPos s)
+runIndentT :: Monad m => IndentT m a -> m a
+runIndentT i = evalStateT i (Pos 1 1)
+
+-- | Simplified version of 'runIndentT'.
+runIndent :: IndentT Identity a -> a
+runIndent = runIdentity . runIndentT
 
 -- | '<+/>' is to indentation sensitive parsers what 'ap' is to monads
 (<+/>)
