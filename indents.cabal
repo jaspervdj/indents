@@ -9,16 +9,37 @@ Author:              Sam Anklesaria, Jasper Van der Jeugt
 Maintainer:          jaspervdj@gmail.com
 Category:            Text, Parsing
 Build-type:          Simple
-Cabal-version:       >=1.2
+Cabal-version:       >=1.8
 
 Extra-source-files:
   CHANGELOG.md
 
 Library
+  Hs-source-dirs: src
+  Ghc-options:    -Wall
+
   Exposed-modules:
     Text.Parsec.Indent
 
   Build-depends:
-    base          >= 4 && < 5,
-    parsec        >= 3 && < 3.2,
-    mtl           >= 1 && < 2.3
+    base   >= 4 && < 5,
+    parsec >= 3 && < 3.2,
+    mtl    >= 1 && < 2.3
+
+Test-suite indents-tests
+  Ghc-options:    -Wall
+  Hs-source-dirs: tests
+  Main-is:        Main.hs
+  Type:           exitcode-stdio-1.0
+
+  Other-modules:
+    Text.Parsec.Indent.Tests
+
+  Build-depends:
+    indents,
+    tasty       >= 0.11 && < 0.12,
+    tasty-hunit >= 0.9  && < 0.10,
+    -- Copy-pasted from 'Library' dependencies.
+    base   >= 4 && < 5,
+    parsec >= 3 && < 3.2,
+    mtl    >= 1 && < 2.3

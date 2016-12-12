@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# OPTIONS_GHC -fno-warn-redundant-constraints #-}
 module Text.Parsec.Indent (
     -- $doc
 
@@ -51,7 +52,7 @@ import           Text.Parsec.Token
 data Pos = Pos
     { pLine   :: !Int
     , pColumn :: !Int
-    }
+    } deriving (Show)
 
 getCurrentPos :: Monad m => IndentParserT s u m Pos
 getCurrentPos = do
@@ -132,7 +133,6 @@ withPos
     => IndentParserT s u m a
     -> IndentParserT s u m a
 withPos x = do
-    a <- getReferencePos
     p <- getCurrentPos
     local (const p) x
 
