@@ -1,5 +1,4 @@
 language: haskell
-ghc: '7.8'
 sudo: false
 cache:
   directories:
