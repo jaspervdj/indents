@@ -18,7 +18,7 @@ module Text.Parsec.Indent (
 
 import           Control.Monad          (ap, liftM2, when)
 import           Control.Monad.Identity (Identity, runIdentity)
-import           Control.Monad.State    (StateT, evalStateT, get, put)
+import           Control.Monad.Reader   (ReaderT, ask, local, runReaderT)
 import           Text.Parsec
 import           Text.Parsec.Token
 
@@ -59,10 +59,10 @@ getCurrentPos = do
     return $! Pos {pLine = sourceLine pos, pColumn = sourceColumn pos}
 
 getReferencePos :: Monad m => IndentParserT s u m Pos
-getReferencePos = get
+getReferencePos = ask
 
 -- | Indentation transformer.
-type IndentT m = StateT Pos m
+type IndentT m = ReaderT Pos m
 
 -- | Indentation sensitive parser type. Usually @m@ will be 'Identity' as with
 -- any 'ParsecT'.  In that case you can use the simpler 'IndentParser' type.
@@ -134,8 +134,7 @@ withPos
 withPos x = do
     a <- getReferencePos
     p <- getCurrentPos
-    r <- put p >> x
-    put a >> return r
+    local (const p) x
 
 -- | Ensures the current indentation level matches that of the reference
 checkIndent
@@ -148,7 +147,7 @@ checkIndent = do
 
 -- | Run the result of an indentation sensitive parse
 runIndentT :: Monad m => IndentT m a -> m a
-runIndentT i = evalStateT i (Pos 1 1)
+runIndentT i = runReaderT i (Pos 1 1)
 
 -- | Simplified version of 'runIndentT'.
 runIndent :: IndentT Identity a -> a
