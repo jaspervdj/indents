@@ -16,7 +16,11 @@ Extra-source-files:
 
 Library
   Hs-source-dirs: src
-  Ghc-options:    -Wall
+
+  If impl(ghc >= 8.0)
+    Ghc-options: -Wall -fno-warn-redundant-constraints
+  Else
+    Ghc-options: -Wall
 
   Exposed-modules:
     Text.Parsec.Indent

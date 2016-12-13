@@ -1,6 +1,5 @@
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# OPTIONS_GHC -fno-warn-redundant-constraints #-}
 module Text.Parsec.Indent (
     -- $doc
 
