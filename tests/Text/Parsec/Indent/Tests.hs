@@ -2,10 +2,12 @@ module Text.Parsec.Indent.Tests
     ( tests
     ) where
 
-import qualified Test.Tasty         as Tasty
-import qualified Test.Tasty.HUnit   as HUnit
-import qualified Text.Parsec        as Parsec
-import qualified Text.Parsec.Indent as Indent
+import           Control.Applicative ((*>), (<*))
+import qualified Test.Tasty          as Tasty
+import qualified Test.Tasty.HUnit    as HUnit
+import qualified Text.Parsec         as Parsec
+import qualified Text.Parsec.Indent  as Indent
+import           Prelude
 
 tests :: Tasty.TestTree
 tests = Tasty.testGroup "Text.Parsce.Indent.Tests"
