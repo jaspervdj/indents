@@ -53,6 +53,14 @@ data Pos = Pos
     , pColumn :: !Int
     } deriving (Show)
 
+showIndent :: Pos -> String
+showIndent pos = case pColumn pos of
+    1 -> "top-level indentation"
+    c -> show (c - 1) ++ "-column indentation"
+
+showLine :: Pos -> String
+showLine = show . pLine
+
 getCurrentPos :: Monad m => IndentParserT s u m Pos
 getCurrentPos = do
     pos <- getPosition
@@ -100,13 +108,18 @@ indented
 indented = do
     pos <- getCurrentPos
     ref <- getReferencePos
-    when (pColumn pos <= pColumn ref) (parserFail "not indented")
+    when (pColumn pos <= pColumn ref) $ unexpected (showIndent pos)
 
 -- | Parses only when indented past the level of the reference or on the same line
 sameOrIndented
     :: (Monad m, Stream s (IndentT m) z)
     => IndentParserT s u m ()
-sameOrIndented = same <|> indented
+sameOrIndented = do
+    -- This is equal to 'same <|> indented' but gives a cleaner error message.
+    pos <- getCurrentPos
+    ref <- getReferencePos
+    when (pColumn pos <= pColumn ref && pLine pos /= pLine ref) $
+        unexpected (showIndent pos)
 
 -- | Parses only on the same line as the reference
 same
@@ -114,8 +127,8 @@ same
     => IndentParserT s u m ()
 same = do
     pos <- getCurrentPos
-    s <- getReferencePos
-    if pLine pos == pLine s then return () else parserFail "over one line"
+    ref <- getReferencePos
+    when (pLine pos /= pLine ref) $ unexpected "line break"
 
 -- | Parses a block of lines at the same indentation level
 block

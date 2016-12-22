@@ -10,7 +10,7 @@ import qualified Text.Parsec.Indent  as Indent
 import           Prelude
 
 tests :: Tasty.TestTree
-tests = Tasty.testGroup "Text.Parsce.Indent.Tests"
+tests = Tasty.testGroup "Text.Parsec.Indent.Tests"
     [ HUnit.testCase "01" $ parseTaxonomyTest
         "k       \n\
         \ a1     \n\
@@ -32,6 +32,12 @@ tests = Tasty.testGroup "Text.Parsce.Indent.Tests"
                 , Taxonomy "works" []
                 ]
             ]
+
+    , HUnit.testCase "02" $ parseTaxonomyTest
+        " k \n\
+        \a  \n\
+        \"
+        Nothing
     ]
 
 type Term = String
