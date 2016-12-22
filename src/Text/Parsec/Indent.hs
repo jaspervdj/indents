@@ -8,7 +8,7 @@ module Text.Parsec.Indent (
     -- * Blocks
     withBlock, withBlock', block,
     -- * Indentation Checking
-    indented, same, sameOrIndented, checkIndent, withPos,
+    indented, same, sameOrIndented, checkIndent, topLevel, withPos,
     -- * Paired characters
     indentBrackets, indentAngles, indentBraces, indentParens,
     -- * Line Fold Chaining
@@ -16,7 +16,7 @@ module Text.Parsec.Indent (
     (<+/>), (<-/>), (<*/>), (<?/>), Optional(..)
     ) where
 
-import           Control.Monad          (ap, liftM2, when)
+import           Control.Monad          (ap, liftM2, unless, when)
 import           Control.Monad.Identity (Identity, runIdentity)
 import           Control.Monad.Reader   (ReaderT, ask, local, runReaderT)
 import           Text.Parsec
@@ -153,9 +153,18 @@ checkIndent
     :: (Monad m, Stream s (IndentT m) z)
     => IndentParserT s u m ()
 checkIndent = do
-    s <- getReferencePos
-    p <- getCurrentPos
-    if pColumn p == pColumn s then return () else parserFail "indentation doesn't match"
+    ref <- getReferencePos
+    pos <- getCurrentPos
+    when (pColumn pos /= pColumn ref) $
+        (<?> showIndent ref ++ " (started at line " ++ showLine ref ++ ")")
+        (unexpected $ showIndent pos)
+
+topLevel
+    :: (Monad m, Stream s (IndentT m) z)
+    => IndentParserT s u m ()
+topLevel = do
+    pos <- getCurrentPos
+    unless (pColumn pos == 1) $ unexpected "indentation"
 
 -- | Run the result of an indentation sensitive parse
 runIndentT :: Monad m => IndentT m a -> m a
