@@ -8,3 +8,4 @@ Changelog
     * Add `IndentParserT` in addition to `IndentParser`
     * Remove dependency on `concatenative`
     * Add `topLevel` function
+    * Add `runIndentParserT`, `runIndentParser` convenience functions

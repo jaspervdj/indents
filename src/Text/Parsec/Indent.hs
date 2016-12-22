@@ -5,6 +5,7 @@ module Text.Parsec.Indent (
 
     -- * Types
     IndentT, IndentParserT, IndentParser, runIndent,
+    runIndentParserT, runIndentParser,
     -- * Blocks
     withBlock, withBlock', block,
     -- * Indentation Checking
@@ -173,6 +174,29 @@ runIndentT i = runReaderT i (Pos 1 1)
 -- | Simplified version of 'runIndentT'.
 runIndent :: IndentT Identity a -> a
 runIndent = runIdentity . runIndentT
+
+-- | This is a convenience function which wraps 'runIndentT' and 'runParserT'.
+runIndentParserT
+    :: (Monad m, Stream s (IndentT m) t)
+    => IndentParserT s u m a    -- ^ Parser to run
+    -> u                        -- ^ User state
+    -> SourceName               -- ^ Source name
+    -> s                        -- ^ Input for the parser
+    -> m (Either ParseError a)  -- ^ Result
+runIndentParserT parser u source txt =
+    runIndentT (runParserT parser u source txt)
+
+-- | This is another convenience function.  Use this instead of
+-- 'runIndentParserT' if 'm' is 'Identity'.
+runIndentParser
+    :: Stream s (IndentT Identity) t
+    => IndentParser s u a   -- ^ Parser to run
+    -> u                    -- ^ User state
+    -> SourceName           -- ^ Source name
+    -> s                    -- ^ Input for the parser
+    -> Either ParseError a  -- ^ Result
+runIndentParser parser u source txt =
+    runIdentity (runIndentParserT parser u source txt)
 
 -- | '<+/>' is to indentation sensitive parsers what 'ap' is to monads
 (<+/>)
