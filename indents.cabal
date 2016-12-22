@@ -1,5 +1,5 @@
 Name:                indents
-Version:             0.3.3
+Version:             0.4.0.0
 Synopsis:            indentation sensitive parser-combinators for parsec
 Description:         This library provides functions for use in parsing indentation sensitive contexts. It parses blocks of lines all indented to the same level as well as lines continued at an indented level below.
 Homepage:            http://github.com/jaspervdj/indents
