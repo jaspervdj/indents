@@ -7,3 +7,4 @@ Changelog
     * Use `ReaderT` stack instead of `State`
     * Add `IndentParserT` in addition to `IndentParser`
     * Remove dependency on `concatenative`
+    * Add `topLevel` function
