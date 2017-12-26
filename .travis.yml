@@ -1,6 +1,0 @@
-language: haskell
-sudo: false
-cache:
-  directories:
-    - '$HOME/.cabal'
-    - '$HOME/.ghc'

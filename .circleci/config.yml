@@ -1,0 +1,23 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: 'fpco/stack-build:latest'
+    steps:
+      - checkout
+      - restore_cache:
+          key: 'v1-indents-{{ arch }}-{{ .Branch }}'
+      - run:
+          name: 'Update cabal indices'
+          command: 'cabal update'
+      - run:
+          name: 'Install dependencies'
+          command: 'cabal install --only-dependencies --enable-tests'
+      - run:
+          name: 'Build and run tests'
+          command: 'cabal test'
+      - save_cache:
+          key: 'v1-indents-{{ arch }}-{{ .Branch }}-{{ .Revision }}'
+          paths:
+            - '~/.cabal'
+            - '~/.ghc'
