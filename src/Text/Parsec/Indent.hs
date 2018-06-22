@@ -19,10 +19,12 @@ module Text.Parsec.Indent (
     (<+/>), (<-/>), (<*/>), (<?/>), Optional(..)
     ) where
 
-import           Control.Monad          (ap, liftM2, unless, when)
-import           Control.Monad.Identity (Identity, runIdentity)
-import           Control.Monad.Reader   (ReaderT, ask, local, runReaderT)
+import           Control.Monad               (ap, liftM2)
+import           Control.Monad.Identity      (Identity, runIdentity)
+import           Control.Monad.Reader        (ReaderT, ask, local, runReaderT)
 import           Text.Parsec
+import qualified Text.Parsec.Indent.Explicit as Explicit
+import           Text.Parsec.Indent.Internal
 import           Text.Parsec.Token
 
 -- $doc
@@ -50,30 +52,11 @@ import           Text.Parsec.Token
 -- is MIME headers. Line folding based binding separation is used in
 -- Haskell as well.
 
--- | We use our own 'Position' type that doesn't require a 'SourceName'.
-data Pos = Pos
-    { pLine   :: !Int
-    , pColumn :: !Int
-    } deriving (Show)
-
-showIndent :: Pos -> String
-showIndent pos = case pColumn pos of
-    1 -> "top-level indentation"
-    c -> show (c - 1) ++ "-column indentation"
-
-showLine :: Pos -> String
-showLine = show . pLine
-
-getCurrentPos :: Monad m => IndentParserT s u m Pos
-getCurrentPos = do
-    pos <- getPosition
-    return $! Pos {pLine = sourceLine pos, pColumn = sourceColumn pos}
-
-getReferencePos :: Monad m => IndentParserT s u m Pos
-getReferencePos = ask
+referenceIndentation :: Monad m => IndentParserT s u m Indentation
+referenceIndentation = ask
 
 -- | Indentation transformer.
-type IndentT m = ReaderT Pos m
+type IndentT m = ReaderT Indentation m
 
 -- | Indentation sensitive parser type. Usually @m@ will be 'Identity' as with
 -- any 'ParsecT'.  In that case you can use the simpler 'IndentParser' type.
@@ -108,39 +91,26 @@ withBlock' = withBlock (flip const)
 indented
     :: (Monad m, Stream s (IndentT m) z)
     => IndentParserT s u m ()
-indented = do
-    pos <- getCurrentPos
-    ref <- getReferencePos
-    when (pColumn pos <= pColumn ref) $ unexpected (showIndent pos)
+indented = referenceIndentation >>= Explicit.indented
 
 -- | Parses only when indented past the level of the reference or on the same line
 sameOrIndented
     :: (Monad m, Stream s (IndentT m) z)
     => IndentParserT s u m ()
-sameOrIndented = do
-    -- This is equal to 'same <|> indented' but gives a cleaner error message.
-    pos <- getCurrentPos
-    ref <- getReferencePos
-    when (pColumn pos <= pColumn ref && pLine pos /= pLine ref) $
-        unexpected (showIndent pos)
+sameOrIndented = referenceIndentation >>= Explicit.sameOrIndented
 
 -- | Parses only on the same line as the reference
 same
     :: (Monad m, Stream s (IndentT m) z)
     => IndentParserT s u m ()
-same = do
-    pos <- getCurrentPos
-    ref <- getReferencePos
-    when (pLine pos /= pLine ref) $ unexpected "line break"
+same = referenceIndentation >>= Explicit.same
 
 -- | Parses a block of lines at the same indentation level
 block
     :: (Monad m, Stream s (IndentT m) z)
     => IndentParserT s u m a
     -> IndentParserT s u m [a]
-block p = withPos $ do
-    r <- many1 (checkIndent >> p)
-    return r
+block = Explicit.block
 
 -- | Parses using the current location for indentation reference
 withPos
@@ -148,39 +118,30 @@ withPos
     => IndentParserT s u m a
     -> IndentParserT s u m a
 withPos x = do
-    p <- getCurrentPos
+    p <- Explicit.indentation
     local (const p) x
 
 -- | Ensures the current indentation level matches that of the reference
 checkIndent
     :: (Monad m, Stream s (IndentT m) z)
     => IndentParserT s u m ()
-checkIndent = do
-    ref <- getReferencePos
-    pos <- getCurrentPos
-    when (pColumn pos /= pColumn ref) $
-        (<?> showIndent ref ++ " (started at line " ++ showLine ref ++ ")")
-        (unexpected $ showIndent pos)
+checkIndent = referenceIndentation >>= Explicit.checkIndent
 
 -- | Ensures that there is no indentation.
 topLevel
     :: (Monad m, Stream s (IndentT m) z)
     => IndentParserT s u m ()
-topLevel = do
-    pos <- getCurrentPos
-    unless (pColumn pos == 1) $ unexpected "indentation"
+topLevel = Explicit.topLevel
 
 -- | Ensures that there is at least some indentation.
 notTopLevel
     :: (Monad m, Stream s (IndentT m) z)
     => IndentParserT s u m ()
-notTopLevel = do
-    pos <- getCurrentPos
-    when (pColumn pos == 1) $ unexpected "top-level"
+notTopLevel = Explicit.notTopLevel
 
 -- | Run the result of an indentation sensitive parse
 runIndentT :: Monad m => IndentT m a -> m a
-runIndentT i = runReaderT i (Pos 1 1)
+runIndentT i = runReaderT i (Indentation 1 1)
 
 -- | Simplified version of 'runIndentT'.
 runIndent :: IndentT Identity a -> a
