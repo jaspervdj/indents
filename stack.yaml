@@ -4,3 +4,4 @@ flags: {}
 packages:
   - '.'
 extra-deps: []
+save-hackage-creds: false
