@@ -1,6 +1,9 @@
 Changelog
 =========
 
+- 0.5.0.0 (2018-06-22)
+    * Add the `Text.Parsec.Indent.Explicit` module
+
 - 0.4.0.1 (2017-12-26)
     * Bump `tasty` and `tasty-hunit` dependencies
 

@@ -1,12 +1,12 @@
 Name:                indents
-Version:             0.4.0.1
+Version:             0.5.0.0
 Synopsis:            indentation sensitive parser-combinators for parsec
 Description:         This library provides functions for use in parsing indentation sensitive contexts. It parses blocks of lines all indented to the same level as well as lines continued at an indented level below.
 Homepage:            http://github.com/jaspervdj/indents
 License:             BSD3
 License-file:        LICENSE
 Author:              Sam Anklesaria, Jasper Van der Jeugt
-Maintainer:          jaspervdj@gmail.com
+Maintainer:          Jasper Van der Jeugt <m@jaspervdj.be>
 Category:            Text, Parsing
 Build-type:          Simple
 Cabal-version:       >=1.8
