@@ -2,22 +2,18 @@ version: 2
 jobs:
   build:
     docker:
-      - image: 'fpco/stack-build:latest'
+      - image: 'haskell:latest'
     steps:
-      - checkout
+      - run:
+          name: 'Clone'
+          command: 'git clone https://github.com/jaspervdj/indents.git .'
       - restore_cache:
-          key: 'v2-indents-{{ arch }}-{{ .Branch }}'
+          key: 'v3-indents-{{ arch }}-{{ .Branch }}'
       - run:
-          name: 'Update cabal indices'
-          command: 'cabal update'
-      - run:
-          name: 'Install dependencies'
-          command: 'cabal install --only-dependencies --enable-tests'
-      - run:
-          name: 'Build and run tests'
-          command: 'cabal test'
+          name: 'Test'
+          command: 'stack test --no-terminal --install-ghc'
       - save_cache:
-          key: 'v2-indents-{{ arch }}-{{ .Branch }}-{{ .Revision }}'
+          key: 'v3-indents-{{ arch }}-{{ .Branch }}-{{ .Revision }}'
           paths:
-            - '~/.cabal'
-            - '~/.ghc'
+            - '~/.stack-work'
+            - '~/.stack'
