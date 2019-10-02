@@ -6,18 +6,12 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          key: 'v2-indents-{{ arch }}-{{ .Branch }}'
+          key: 'v3-indents-{{ arch }}-{{ .Branch }}'
       - run:
-          name: 'Update cabal indices'
-          command: 'cabal update'
-      - run:
-          name: 'Install dependencies'
-          command: 'cabal install --only-dependencies --enable-tests'
-      - run:
-          name: 'Build and run tests'
-          command: 'cabal test'
+          name: 'Test'
+          command: 'stack test --no-terminal'
       - save_cache:
-          key: 'v2-indents-{{ arch }}-{{ .Branch }}-{{ .Revision }}'
+          key: 'v3-indents-{{ arch }}-{{ .Branch }}-{{ .Revision }}'
           paths:
-            - '~/.cabal'
-            - '~/.ghc'
+            - '~/.stack-work'
+            - '~/.stack'
