@@ -2,7 +2,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: 'haskell:8.6'
+      - image: 'haskell:latest'
     steps:
       - run:
           name: 'Clone'
@@ -11,7 +11,7 @@ jobs:
           key: 'v3-indents-{{ arch }}-{{ .Branch }}'
       - run:
           name: 'Test'
-          command: 'stack test --no-terminal'
+          command: 'stack test --no-terminal --install-ghc'
       - save_cache:
           key: 'v3-indents-{{ arch }}-{{ .Branch }}-{{ .Revision }}'
           paths:
