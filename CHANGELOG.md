@@ -1,6 +1,9 @@
 Changelog
 =========
 
+- 0.5.0.1 (2019-10-02)
+    * Bump `tasty` dependency to 1.2.3
+
 - 0.5.0.0 (2018-06-22)
     * Add the `Text.Parsec.Indent.Explicit` module
 
