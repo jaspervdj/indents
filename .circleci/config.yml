@@ -2,7 +2,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: 'fpco/stack-build:lts'
+      - image: 'haskell:8.6'
     steps:
       - checkout
       - restore_cache:
