@@ -4,7 +4,9 @@ jobs:
     docker:
       - image: 'haskell:8.6'
     steps:
-      - checkout
+      - run:
+          name: 'Clone'
+          command: 'git clone https://github.com/jaspervdj/indents.git .'
       - restore_cache:
           key: 'v3-indents-{{ arch }}-{{ .Branch }}'
       - run:
