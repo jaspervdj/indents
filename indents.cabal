@@ -34,7 +34,7 @@ Library
   Build-depends:
     base   >= 4 && < 5,
     parsec >= 3 && < 3.2,
-    mtl    >= 1 && < 2.3
+    mtl    >= 1 && < 2.4
 
 Test-suite indents-tests
   Ghc-options:    -Wall
@@ -52,4 +52,4 @@ Test-suite indents-tests
     -- Copy-pasted from 'Library' dependencies.
     base   >= 4 && < 5,
     parsec >= 3 && < 3.2,
-    mtl    >= 1 && < 2.3
+    mtl    >= 1 && < 2.4
